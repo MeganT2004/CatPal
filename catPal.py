@@ -52,10 +52,10 @@ window.overrideredirect(True)
 window.attributes("-topmost", True)
 window.configure(bg=TRANSPARENT_COLOR)
 
-bgBase, wb, hb = imageLoad("cat2test.png")
 bgLClick, wc, hc = imageLoad("cat2love.png")
-bgRClick, wd, hd = imageLoad("cat2down.png")
+bgRClick, wd, hd = imageLoad("AnimationAssets/down/down_0.png")
 bgSleep, wd, hd = imageLoad("cat2sleep.png")
+bgBase, wb, hb = imageLoad("AnimationAssets/BaseAnimation/base_0.png")
 
 img_base = ImageTk.PhotoImage(bgBase)
 img_l_click = ImageTk.PhotoImage(bgLClick)
@@ -65,7 +65,40 @@ img_sleep = ImageTk.PhotoImage(bgSleep)
 label = Label(window, image=img_base, bd=0, bg=TRANSPARENT_COLOR, highlightthickness=0)
 label.pack()
 
-#catLove Event (LClick, timer)
+base_frames = [ImageTk.PhotoImage(imageLoad(f"AnimationAssets/BaseAnimation/base_{i}.png")[0]) for i in range(7)]
+down_frames = [ImageTk.PhotoImage(imageLoad(f"AnimationAssets/down/down_{i}.png")[0]) for i in range(7)]
+current_frame = 0
+frames = base_frames
+
+#Animation loop
+def animate():
+    global current_frame
+    label.config(image=frames[current_frame % len(frames)])
+    current_frame = (current_frame + 1) % len(frames)
+    window.after(200, animate)#5fps
+
+#CatDown event (RClick) #On right click, the cat is hidden at the bottom of the screen
+def cat_down_click(event):
+    global cat_busy, frames, current_frame
+    cat_busy = True
+    frames = down_frames
+    current_frame = 0  # reset so it starts from frame 0
+    label.bind("<Button-3>", restore_cat_click)
+
+def restore_cat_click(event):
+    global cat_busy, frames, current_frame
+    frames = base_frames
+    current_frame = 0
+    label.bind("<Button-3>", cat_down_click)
+    cat_busy = False
+
+def restore_cat():
+    global cat_busy, frames, current_frame
+    frames = base_frames
+    current_frame = 0
+    cat_busy = False
+
+#catLove Event (LClick, timer) #On left click, the cat displays a love animation
 def on_cat_click(event):
     global cat_busy
     cat_busy = True
@@ -74,29 +107,6 @@ def on_cat_click(event):
 
     #after 2 seconds, restore
     window.after(2000, restore_cat)
-
-def restore_cat():
-    global cat_busy
-    label.config(image=img_base)
-    label.image = img_base
-    cat_busy = False
-
-#CatDown event (RClick)
-def cat_down_click(event):
-    global cat_busy
-    cat_busy = True
-    label.config(image=img_r_click)
-    label.image = img_r_click
-
-    #after 2 seconds, restore
-    label.bind("<Button-3>", restore_cat_click)
-
-def restore_cat_click(event):
-    global cat_busy
-    label.config(image=img_base)
-    label.image = img_base
-    label.bind("<Button-3>", cat_down_click)
-    cat_busy = False
 
 label.bind("<Button-1>", on_cat_click)
 label.bind("<Button-3>", cat_down_click)
@@ -113,20 +123,18 @@ def on_move(x, y):
 listener = mouse.Listener(on_move=on_move)
 listener.start()
 
-IDLE_TIME = 30
+IDLE_TIME = 300
 
 def go_to_sleep():
     label.config(image=img_sleep)
     label.image = img_sleep
 
-def check_idle():
-    current_time = time.time()
-    if not cat_busy:
-        if current_time - last_move_time > IDLE_TIME:
-            go_to_sleep()
-        else:
-            restore_cat()
-    window.after(500, check_idle)  # check every half second
+###def restore_cat():
+###    global cat_busy, frames, current_frame
+###    if frames is not base_frames:  # only reset if we're not already on base
+###       frames = base_frames
+###        current_frame = 0
+###    cat_busy = False  # check every half second
 
 window.update_idletasks()
 try:
@@ -137,6 +145,6 @@ except TclError:
 x = right - wb
 y = bottom - hb
 
+animate()
 window.geometry(f"{wb}x{hb}+{x-300}+{y}")
-check_idle()
 window.mainloop()
